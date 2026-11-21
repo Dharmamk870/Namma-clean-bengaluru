@@ -1,0 +1,2860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Namma Clean Bengaluru | ನಮ್ಮ ಸ್ವಚ್ಛ ಬೆಂಗಳೂರು - Civic Black Spot Intelligence</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            civic: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              300: '#6ee7b7',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669', // Deep Emerald Green
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+              950: '#022c22',
+            },
+            amberSpot: '#f59e0b',
+            crimsonSpot: '#ef4444',
+            cleanedGreen: '#10b981',
+            bbmpNavy: '#0f172a',
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Kannada', 'system-ui', 'sans-serif'],
+          },
+          animation: {
+            'pulse-fast': 'pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'bounce-subtle': 'bounce 2s infinite',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Custom Map Marker Styling */
+    .custom-pin-marker {
+      background: transparent;
+      border: none;
+    }
+    .pin-bubble {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+    }
+    .pin-bubble:hover {
+      transform: scale(1.15) translateY(-4px);
+      z-index: 9999 !important;
+    }
+    .pulsing-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 9999px;
+      animation: pingRing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    @keyframes pingRing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      75%, 100% { transform: scale(2.2); opacity: 0; }
+    }
+    
+    /* Before/After Split Slider */
+    .compare-container {
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+    .compare-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 50%;
+      overflow: hidden;
+    }
+    .compare-slider-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 3px;
+      background: #ffffff;
+      transform: translateX(-50%);
+      pointer-events: none;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .compare-slider-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 36px;
+      height: 36px;
+      background: #ffffff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #059669;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    /* Custom Leaflet popup styling */
+    .leaflet-popup-content-wrapper {
+      padding: 0;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      line-height: 1.4;
+    }
+    .leaflet-container a.leaflet-popup-close-button {
+      top: 10px;
+      right: 10px;
+      padding: 4px;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 9999px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      z-index: 100;
+    }
+    .leaflet-container a.leaflet-popup-close-button:hover {
+      background: rgba(15, 23, 42, 0.9);
+      color: #ffffff;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen flex flex-col">
+
+  <!-- ========================================================================= -->
+  <!-- TOP CIVIC HEADER & LIVE METRICS -->
+  <!-- ========================================================================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm transition-all duration-300" id="mainHeader">
+    <!-- Top Utility & Flag Bar -->
+    <div class="bg-civic-900 text-slate-200 px-4 py-1.5 text-xs flex flex-wrap justify-between items-center border-b border-civic-800">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-medium text-emerald-300">BBMP Solid Waste Management (SWM) Live Portal</span>
+        <span class="hidden sm:inline text-slate-400">|</span>
+        <span class="hidden sm:inline text-slate-300 font-kannada">ಬೆಂಗಳೂರು ಮಹಾನಗರ ಪಾಲಿಕೆ</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-slate-300 flex items-center gap-1">
+          <i data-lucide="radio" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Consensus Engine: <strong class="text-white">Active (5-Report Threshold)</strong></span>
+        </span>
+        <button id="langToggleBtn" onclick="toggleLanguage()" class="hover:text-white transition flex items-center gap-1 font-semibold text-emerald-300 bg-civic-800 px-2 py-0.5 rounded border border-civic-700">
+          <i data-lucide="globe" class="w-3 h-3"></i>
+          <span id="currentLangLabel">ಕನ್ನಡ</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-3">
+        
+        <!-- Brand Title & Emblem -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="flyToCityCenter()">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-civic-600 to-civic-800 flex items-center justify-center text-white shadow-md shadow-civic-600/30">
+            <i data-lucide="shield-alert" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-black tracking-tight text-slate-900">
+                Namma <span class="text-civic-600">Clean Bengaluru</span>
+              </span>
+              <span id="roleBadgeHeader" class="bg-civic-100 text-civic-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full tracking-wide border border-civic-200">
+                Citizen Portal
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium font-kannada leading-tight" id="headerTagline">
+              ನಮ್ಮ ಬೆಂಗಳೂರು, ಸ್ವಚ್ಛ ಬೆಂಗಳೂರು &bull; Crowd-Verified Black Spot Escalator
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick Stats Indicators (Desktop) -->
+        <div class="hidden xl:flex items-center gap-5 border-x border-slate-100 px-6">
+          <div class="text-left">
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Active Spots</p>
+            <p class="text-base font-extrabold text-amber-600 flex items-center gap-1" id="statActiveSpots">
+              <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> 4
+            </p>
+          </div>
+          <div class="text-left">
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Verified / High Priority</p>
+            <p class="text-base font-extrabold text-red-600 flex items-center gap-1" id="statVerifiedSpots">
+              <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> 3
+            </p>
+          </div>
+          <div class="text-left">
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Cleaned This Week</p>
+            <p class="text-base font-extrabold text-emerald-600 flex items-center gap-1" id="statCleanedSpots">
+              <i data-lucide="check-check" class="w-4 h-4"></i> 2
+            </p>
+          </div>
+        </div>
+
+        <!-- Role Toggle & Actions -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          
+          <!-- Mode Switcher (Citizen vs BBMP Marshall) -->
+          <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200">
+            <button id="citizenModeBtn" onclick="setAppRole('citizen')" 
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm bg-white text-civic-700">
+              <i data-lucide="users" class="w-3.5 h-3.5"></i>
+              <span class="hidden md:inline">Citizen View</span>
+            </button>
+            <button id="marshallModeBtn" onclick="setAppRole('marshall')" 
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-500"></i>
+              <span class="hidden md:inline">BBMP Marshall</span>
+            </button>
+          </div>
+
+          <!-- Swachh Wins (Before/After) Button -->
+          <button onclick="openGalleryModal()" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600"></i>
+            <span class="hidden sm:inline">Swachh Wins</span>
+          </button>
+
+          <!-- Ward Leaderboard Button -->
+          <button onclick="openLeaderboardModal()" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition flex items-center gap-1.5">
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i>
+            <span class="hidden sm:inline">Ward Ranks</span>
+          </button>
+
+          <!-- Civic Points User Badge -->
+          <button onclick="openGamificationModal()" class="bg-emerald-50 hover:bg-emerald-100 text-civic-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <div class="w-5 h-5 rounded-full bg-civic-600 text-white flex items-center justify-center text-[10px]">
+              ★
+            </div>
+            <div class="text-left leading-tight hidden lg:block">
+              <p class="text-[9px] text-civic-600 uppercase font-semibold">Civic Points</p>
+              <p class="text-xs font-extrabold" id="userPointsNav">340 Pts</p>
+            </div>
+            <span class="lg:hidden text-xs font-extrabold" id="userPointsNavMobile">340</span>
+          </button>
+
+          <!-- Main CTA: Report Black Spot -->
+          <button onclick="openNewReportModal()" class="bg-civic-600 hover:bg-civic-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-civic-600/30 transition flex items-center gap-1.5">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Report Spot</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MARSHALL BANNER (Only visible in Marshall Mode) -->
+  <!-- ========================================================================= -->
+  <div id="marshallNoticeBanner" class="hidden bg-slate-900 text-amber-400 px-4 py-2 text-xs flex justify-between items-center border-b border-amber-500/30">
+    <div class="max-w-7xl mx-auto w-full flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/40">
+          OFFICIAL MARSHALL CONSOLE
+        </span>
+        <span class="text-slate-300 font-medium">
+          Logged in as <strong>BBMP SWM Marshall Unit (South & East Command)</strong>. Displaying verified spots awaiting physical dispatch.
+        </span>
+      </div>
+      <button onclick="setAppRole('citizen')" class="text-xs text-slate-300 hover:text-white underline">
+        Exit to Citizen Mode
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE: MAP & INTERACTIVE SIDEBAR -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
+    
+    <!-- Left Sidebar: Filter, Live Queue, Feed -->
+    <aside id="sidebarPanel" class="w-full lg:w-96 xl:w-[410px] bg-white border-r border-slate-200 flex flex-col z-10 transition-all duration-300 shadow-lg lg:shadow-none max-h-[45vh] lg:max-h-[calc(100vh-6rem)] overflow-hidden">
+      
+      <!-- Search & Filter Controls Bar -->
+      <div class="p-4 border-b border-slate-100 space-y-3 bg-slate-50/70">
+        <!-- Search Input -->
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+          <input type="text" id="searchInput" oninput="renderSpotsList()" 
+            placeholder="Search landmark, ward, or ticket..." 
+            class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-civic-500 text-slate-800 placeholder-slate-400 transition" />
+        </div>
+
+        <!-- Filter Status Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-semibold no-scrollbar">
+          <button onclick="setFilterStatus('all')" id="filterBtn-all" class="filter-status-pill px-3 py-1 rounded-lg bg-civic-600 text-white shadow-sm whitespace-nowrap">
+            All Spots (<span id="count-all">0</span>)
+          </button>
+          <button onclick="setFilterStatus('pending')" id="filterBtn-pending" class="filter-status-pill px-3 py-1 rounded-lg bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 whitespace-nowrap">
+            🟡 Pending (<span id="count-pending">0</span>)
+          </button>
+          <button onclick="setFilterStatus('verified')" id="filterBtn-verified" class="filter-status-pill px-3 py-1 rounded-lg bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 whitespace-nowrap">
+            🔴 Verified (<span id="count-verified">0</span>)
+          </button>
+          <button onclick="setFilterStatus('cleaned')" id="filterBtn-cleaned" class="filter-status-pill px-3 py-1 rounded-lg bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 whitespace-nowrap">
+            🟢 Cleaned (<span id="count-cleaned">0</span>)
+          </button>
+        </div>
+
+        <!-- Secondary Dropdown Filters: Ward & Category -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <select id="filterWardSelect" onchange="renderSpotsList()" class="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-civic-500">
+            <option value="all">All Wards / Zones</option>
+            <option value="Koramangala">Koramangala (Ward 151)</option>
+            <option value="Indiranagar">Indiranagar (Ward 89)</option>
+            <option value="HSR Layout">HSR Layout (Ward 174)</option>
+            <option value="Whitefield">Whitefield (Ward 84)</option>
+            <option value="Jayanagar">Jayanagar (Ward 153)</option>
+            <option value="Malleshwaram">Malleshwaram (Ward 45)</option>
+            <option value="Electronic City">Electronic City</option>
+            <option value="Hebbal">Hebbal (Ward 7)</option>
+          </select>
+
+          <select id="filterCategorySelect" onchange="renderSpotsList()" class="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-civic-500">
+            <option value="all">All Waste Types</option>
+            <option value="dry_plastic">Plastic & Dry Waste</option>
+            <option value="wet_organic">Wet / Organic Waste</option>
+            <option value="construction">C&D Debris (Construction)</option>
+            <option value="ewaste">E-Waste / Hazardous</option>
+            <option value="mixed">Mixed Black Spot</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Feed Header Info -->
+      <div class="px-4 py-2 bg-slate-100/60 border-b border-slate-200 flex justify-between items-center text-xs">
+        <span class="text-slate-500 font-medium" id="spotsListSubtitle">Showing active reports</span>
+        <span class="text-[11px] font-mono font-semibold text-civic-700 bg-civic-100 px-2 py-0.5 rounded" id="consensusRadiusBadge">
+          50m Consensus Engine Active
+        </span>
+      </div>
+
+      <!-- Scrollable Spots Cards Feed -->
+      <div id="spotsFeedContainer" class="flex-1 overflow-y-auto p-3 space-y-3 divide-y divide-slate-100">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Bottom Mini-Insight / Live Tip -->
+      <div class="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-t border-emerald-100 text-xs text-slate-700 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+            💡
+          </div>
+          <div>
+            <p class="font-bold text-emerald-950">How Consensus Works:</p>
+            <p class="text-[11px] text-emerald-800">5 reports within 50m triggers instant BBMP ticket creation.</p>
+          </div>
+        </div>
+        <button onclick="openSimulationTour()" class="text-civic-700 hover:text-civic-900 font-bold underline text-[11px]">
+          Demo Guide
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- Right Area: Interactive Leaflet Map -->
+    <div class="flex-1 relative h-[55vh] lg:h-auto flex flex-col">
+      
+      <!-- Leaflet Map Canvas -->
+      <div id="map" class="w-full h-full z-0"></div>
+
+      <!-- Floating Map Overlays & Toolbars -->
+      
+      <!-- Top Floating Map Control: Instructions & Quick Drop -->
+      <div class="absolute top-4 left-4 right-4 sm:right-auto sm:max-w-md z-[500] pointer-events-none">
+        <div class="bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200/80 pointer-events-auto flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-civic-100 text-civic-700 flex items-center justify-center font-bold">
+              <i data-lucide="map-pin" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-800" id="mapPromptTitle">Click anywhere on Bengaluru map</p>
+              <p class="text-[11px] text-slate-500" id="mapPromptSub">to report an illegal garbage black spot pin</p>
+            </div>
+          </div>
+          <button onclick="locateAndDropPin()" class="px-2.5 py-1.5 bg-civic-50 hover:bg-civic-100 text-civic-700 border border-civic-200 rounded-xl text-xs font-bold transition flex items-center gap-1">
+            <i data-lucide="crosshair" class="w-3.5 h-3.5 text-civic-600"></i>
+            <span>My GPS</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Top Right Ward Quick Selector Chips -->
+      <div class="absolute top-4 right-4 hidden md:flex items-center gap-1.5 z-[500] bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-md border border-slate-200">
+        <span class="text-[10px] uppercase font-bold text-slate-400 px-2">Jump to:</span>
+        <button onclick="flyToLocation(12.9345, 77.6265, 15, 'Koramangala')" class="px-2.5 py-1 text-xs font-semibold rounded-lg hover:bg-slate-100 text-slate-700 transition">Koramangala</button>
+        <button onclick="flyToLocation(12.9784, 77.6408, 15, 'Indiranagar')" class="px-2.5 py-1 text-xs font-semibold rounded-lg hover:bg-slate-100 text-slate-700 transition">Indiranagar</button>
+        <button onclick="flyToLocation(12.9116, 77.6476, 15, 'HSR Layout')" class="px-2.5 py-1 text-xs font-semibold rounded-lg hover:bg-slate-100 text-slate-700 transition">HSR Layout</button>
+        <button onclick="flyToLocation(12.9698, 77.7500, 15, 'Whitefield')" class="px-2.5 py-1 text-xs font-semibold rounded-lg hover:bg-slate-100 text-slate-700 transition">Whitefield</button>
+        <button onclick="flyToLocation(12.9982, 77.5703, 15, 'Malleshwaram')" class="px-2.5 py-1 text-xs font-semibold rounded-lg hover:bg-slate-100 text-slate-700 transition">Malleshwaram</button>
+      </div>
+
+      <!-- Bottom Floating Legend -->
+      <div class="absolute bottom-6 left-4 z-[500] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-slate-200 text-xs hidden sm:block max-w-xs">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100 font-bold text-slate-800">
+          <span>Map Legend & Pin Status</span>
+          <span class="text-[10px] text-slate-400">Live Consensus</span>
+        </div>
+        <div class="space-y-1.5 pt-2">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white shadow-sm flex items-center justify-center text-[8px] text-white font-bold">1</span>
+            <span class="text-slate-600 font-medium">🟡 Pending Verification <span class="text-slate-400 font-normal">(1-4 / 5 reports)</span></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-3.5 w-3.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600 border-2 border-white shadow-sm"></span>
+            </span>
+            <span class="text-slate-800 font-bold">🔴 Verified Black Spot <span class="text-red-600 font-mono text-[10px]">(5/5 BBMP Ticket)</span></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-bold">✓</span>
+            <span class="text-slate-600 font-medium">🟢 Cleaned & Resolved <span class="text-emerald-600 font-semibold">(Before/After)</span></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- DEMO / PRESENTATION HELPER BAR (Fixed Bottom Floating Dock) -->
+  <!-- ========================================================================= -->
+  <div class="bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-700 px-4 py-2 z-40 shadow-2xl">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Presenter Tip -->
+      <div class="flex items-center gap-2">
+        <span class="bg-gradient-to-r from-amber-500 to-red-500 text-slate-900 font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">
+          LIVE DEMO DOCK
+        </span>
+        <span class="text-xs text-slate-300 hidden md:inline">
+          Use these triggers during presentation to demonstrate live consensus transitions:
+        </span>
+      </div>
+
+      <!-- Quick Action Buttons for Presenter -->
+      <div class="flex items-center flex-wrap gap-2 text-xs">
+        
+        <!-- Simulate Instant Bulk Report Spike -->
+        <button onclick="triggerSimulateSpike()" class="bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 active:scale-95">
+          <i data-lucide="zap" class="w-3.5 h-3.5 fill-current"></i>
+          <span>Simulate Bulk Spike (+4)</span>
+        </button>
+
+        <!-- Presentation Guide / Pitch Script -->
+        <button onclick="openPitchGuideModal()" class="bg-civic-700 hover:bg-civic-600 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="presentation" class="w-3.5 h-3.5 text-emerald-300"></i>
+          <span>Pitch Guide (2-Min Demo)</span>
+        </button>
+
+        <!-- Toggle Marshall View -->
+        <button onclick="toggleRoleShortcut()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-600 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+          <span id="demoDockRoleLabel">Switch to Marshall View</span>
+        </button>
+
+        <!-- Fly to Hotspot -->
+        <button onclick="flyToLocation(12.9345, 77.6265, 16, 'Koramangala 4th Block')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 px-2.5 py-1.5 rounded-lg font-semibold transition flex items-center gap-1">
+          <i data-lucide="compass" class="w-3.5 h-3.5 text-civic-400"></i>
+          <span>Focus Koramangala (4/5)</span>
+        </button>
+
+        <!-- Reset Demo Data Button -->
+        <button onclick="resetDemoData()" class="bg-slate-800 hover:bg-red-950/80 text-rose-300 hover:text-rose-200 border border-rose-800/40 px-2.5 py-1.5 rounded-lg font-semibold transition flex items-center gap-1" title="Reset all pins to initial state">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>Reset Demo</span>
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: REPORT NEW BLACK SPOT -->
+  <!-- ========================================================================= -->
+  <div id="reportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-civic-700 to-civic-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-emerald-300">
+            <i data-lucide="camera" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              Report Garbage Black Spot
+              <span class="text-[10px] bg-emerald-500/30 text-emerald-200 font-mono px-2 py-0.5 rounded-full border border-emerald-400/30">
+                ಕಸದ ತಾಣ ವರದಿ
+              </span>
+            </h3>
+            <p class="text-xs text-slate-200">Help Bengaluru municipal sweepers locate and eliminate dump spots</p>
+          </div>
+        </div>
+        <button onclick="closeReportModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Form) -->
+      <form id="newReportForm" onsubmit="handleReportSubmit(event)" class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+        
+        <!-- Photo Upload & Demo Preset Picker -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex justify-between items-center">
+            <span>Photo Proof of Waste Dump <span class="text-red-500">*</span></span>
+            <span class="text-[11px] font-normal text-slate-400">Clear photo helps AI and community verify</span>
+          </label>
+
+          <!-- Image Preview Area -->
+          <div class="relative w-full h-44 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-300 hover:border-civic-500 transition overflow-hidden flex flex-col items-center justify-center text-center p-3 group">
+            <img id="reportPhotoPreview" src="" alt="Garbage Preview" class="absolute inset-0 w-full h-full object-cover hidden" />
+            
+            <div id="uploadPrompt" class="space-y-1.5 z-10">
+              <div class="w-10 h-10 mx-auto rounded-full bg-civic-100 text-civic-700 flex items-center justify-center group-hover:scale-110 transition">
+                <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+              </div>
+              <p class="font-bold text-slate-700">Drop waste photo or click to browse</p>
+              <p class="text-xs text-slate-400">Supports JPG, PNG up to 10MB</p>
+            </div>
+
+            <input type="file" id="reportPhotoInput" accept="image/*" onchange="handleImageFileSelect(event)" class="absolute inset-0 opacity-0 cursor-pointer z-20" />
+            
+            <button type="button" id="removePhotoBtn" onclick="clearPhotoSelection(event)" class="hidden absolute top-2 right-2 bg-slate-900/80 hover:bg-slate-900 text-white p-1.5 rounded-full z-30 transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Quick Sample Photo Buttons (Crucial for Demo) -->
+          <div class="mt-2 flex items-center flex-wrap gap-1.5 text-xs">
+            <span class="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+              <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i>
+              Demo Sample Photos:
+            </span>
+            <button type="button" onclick="useSampleGarbagePhoto('mixed')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-medium">
+              Mixed Dump
+            </button>
+            <button type="button" onclick="useSampleGarbagePhoto('plastic')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-medium">
+              Plastic Bottles
+            </button>
+            <button type="button" onclick="useSampleGarbagePhoto('debris')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-medium">
+              C&D Debris
+            </button>
+            <button type="button" onclick="useSampleGarbagePhoto('organic')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-medium">
+              Wet/Market Waste
+            </button>
+          </div>
+        </div>
+
+        <!-- Waste Segregation Category Cards -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Waste Segregation Category <span class="text-red-500">*</span>
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            
+            <label class="cursor-pointer">
+              <input type="radio" name="wasteCategory" value="dry_plastic" checked class="peer sr-only" />
+              <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-blue-500 peer-checked:bg-blue-50/60 hover:bg-slate-50 transition text-left h-full">
+                <span class="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">Neeli / Blue</span>
+                <p class="font-bold text-slate-800 mt-1 text-xs">Dry & Plastic</p>
+                <p class="text-[10px] text-slate-500">Bottles, wrappers, polythene</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer">
+              <input type="radio" name="wasteCategory" value="wet_organic" class="peer sr-only" />
+              <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50/60 hover:bg-slate-50 transition text-left h-full">
+                <span class="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Hasiru / Green</span>
+                <p class="font-bold text-slate-800 mt-1 text-xs">Wet / Organic</p>
+                <p class="text-[10px] text-slate-500">Food scrap, vegetables, rotting</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer">
+              <input type="radio" name="wasteCategory" value="construction" class="peer sr-only" />
+              <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-amber-600 peer-checked:bg-amber-50/60 hover:bg-slate-50 transition text-left h-full">
+                <span class="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">C&D Debris</span>
+                <p class="font-bold text-slate-800 mt-1 text-xs">Construction</p>
+                <p class="text-[10px] text-slate-500">Concrete, bricks, tiles, sand</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer">
+              <input type="radio" name="wasteCategory" value="ewaste" class="peer sr-only" />
+              <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-purple-600 peer-checked:bg-purple-50/60 hover:bg-slate-50 transition text-left h-full">
+                <span class="inline-block px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">Kempu / Red</span>
+                <p class="font-bold text-slate-800 mt-1 text-xs">E-Waste / Hazard</p>
+                <p class="text-[10px] text-slate-500">Batteries, electronics, glass</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer col-span-2 sm:col-span-2">
+              <input type="radio" name="wasteCategory" value="mixed" class="peer sr-only" />
+              <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50/60 hover:bg-slate-50 transition text-left h-full">
+                <span class="inline-block px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">Black Spot</span>
+                <p class="font-bold text-slate-800 mt-1 text-xs">Mixed Black Spot (ಮಿಶ್ರಿತ ಕಸ)</p>
+                <p class="text-[10px] text-slate-500">Severe unsegregated municipal pile overflowing into road</p>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- Coordinates & Location Picker Feedback -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <i data-lucide="map-pin" class="w-4 h-4 text-civic-600"></i>
+              Geo-Coordinates (Bengaluru)
+            </span>
+            <span id="coordDisplayBadge" class="font-mono text-[11px] text-civic-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+              12.9345° N, 77.6265° E
+            </span>
+          </div>
+          <input type="hidden" id="reportLat" value="12.9345" />
+          <input type="hidden" id="reportLng" value="77.6265" />
+
+          <!-- Ward & Zone Dropdown -->
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">BBMP Zone</label>
+              <select id="reportZone" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-civic-500">
+                <option value="South Zone">South Zone</option>
+                <option value="East Zone">East Zone</option>
+                <option value="West Zone">West Zone</option>
+                <option value="Mahadevapura Zone">Mahadevapura Zone</option>
+                <option value="Bommanahalli Zone">Bommanahalli Zone</option>
+                <option value="Yelahanka Zone">Yelahanka Zone</option>
+                <option value="RR Nagar Zone">Rajarajeshwarinagar</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Ward Area</label>
+              <select id="reportWard" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-civic-500">
+                <option value="Ward 151 - Koramangala">Ward 151 - Koramangala</option>
+                <option value="Ward 89 - Jogupalya / Indiranagar">Ward 89 - Indiranagar</option>
+                <option value="Ward 174 - HSR Layout">Ward 174 - HSR Layout</option>
+                <option value="Ward 84 - Hagadur / Whitefield">Ward 84 - Whitefield</option>
+                <option value="Ward 153 - Jayanagar 4th Block">Ward 153 - Jayanagar</option>
+                <option value="Ward 45 - Malleshwaram">Ward 45 - Malleshwaram</option>
+                <option value="Ward 192 - Begur / E-City">Ward 192 - E-City</option>
+                <option value="Ward 7 - Hebbal">Ward 7 - Hebbal</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Landmark & Description -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Landmark & Exact Street Note <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="reportLandmark" required
+            placeholder="e.g., Near Corner House Ice Cream, 100ft Rd, Indiranagar" 
+            class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-civic-500 text-slate-800" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Detailed Issue / Hazard Description
+          </label>
+          <textarea id="reportNotes" rows="2" 
+            placeholder="e.g., Waste blocking entire pedestrian footpath, dogs spreading polythene bags onto traffic lane."
+            class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-civic-500 text-slate-800"></textarea>
+        </div>
+
+        <!-- Civic Points Incentive Note -->
+        <div class="p-3 bg-civic-50 rounded-xl border border-civic-200 flex items-center justify-between text-xs text-civic-800">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-civic-600 text-white flex items-center justify-center font-bold">★</span>
+            <div>
+              <p class="font-bold">Citizen Reward:</p>
+              <p class="text-[11px] text-civic-700">Earn <strong class="text-civic-900">+50 Namma Civic Points</strong> when community verifies this spot!</p>
+            </div>
+          </div>
+          <span class="font-mono font-bold text-civic-700 bg-white px-2 py-1 rounded shadow-sm">+50 Pts</span>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+          <button type="button" onclick="closeReportModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold transition text-xs sm:text-sm">
+            Cancel
+          </button>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-civic-600 hover:bg-civic-700 text-white font-bold shadow-lg shadow-civic-600/30 transition flex items-center gap-2 text-xs sm:text-sm active:scale-95">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Submit Geo-Report</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: SWACHH WINS (Before & After Resolution Gallery) -->
+  <!-- ========================================================================= -->
+  <div id="galleryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      
+      <!-- Gallery Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-emerald-700 to-teal-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-emerald-300">
+            <i data-lucide="sparkles" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              Swachh Wins &bull; Before & After Gallery
+              <span class="text-[10px] bg-emerald-400/20 text-emerald-200 font-mono px-2 py-0.5 rounded-full border border-emerald-300/30">
+                ಸ್ವಚ್ಛ ಗೆಲುವು
+              </span>
+            </h3>
+            <p class="text-xs text-emerald-100">Verified citizen reports successfully cleared by BBMP SWM teams</p>
+          </div>
+        </div>
+        <button onclick="closeGalleryModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Gallery Body -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        
+        <!-- Interactive Spotlight Card with Slider -->
+        <div class="bg-slate-50 rounded-3xl p-4 sm:p-5 border border-slate-200">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider">
+                Interactive Proof Slider
+              </span>
+              <h4 class="text-sm sm:text-base font-extrabold text-slate-800 mt-1">
+                Malleshwaram 8th Cross &bull; Mandi Footpath Restoration
+              </h4>
+              <p class="text-xs text-slate-500">
+                Ticket #BBMP-BLR-6104 &bull; Cleared in 3.5 hours &bull; Ward 45 Quick Action Marshall Squad
+              </p>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1">
+                <i data-lucide="heart" class="w-3.5 h-3.5 fill-current text-rose-500"></i>
+                <span id="applaudCount">148 Citizens Applauded</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Split Slider Interactive Box -->
+          <div class="compare-container rounded-2xl h-64 sm:h-80 w-full cursor-ew-resize select-none overflow-hidden relative shadow-inner" id="compareSliderBox" onmousedown="handleSliderStart(event)" onmousemove="handleSliderMove(event)" onclick="handleSliderClick(event)" ontouchmove="handleSliderTouch(event)">
+            <!-- Cleaned / After (Underneath) -->
+            <img src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=80" 
+              alt="Cleaned Street After" class="absolute inset-0 w-full h-full object-cover" />
+            
+            <div class="absolute top-3 right-3 bg-emerald-700/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow backdrop-blur-sm flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              <span>AFTER (BBMP Cleared)</span>
+            </div>
+
+            <!-- Before (Clipped on top) -->
+            <div class="compare-overlay" id="compareOverlay">
+              <img src="https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=1200&q=80" 
+                alt="Garbage Black Spot Before" class="absolute inset-0 w-full h-full object-cover max-w-none" id="compareBeforeImg" />
+              
+              <div class="absolute top-3 left-3 bg-rose-700/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow backdrop-blur-sm flex items-center gap-1">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                <span>BEFORE (Citizen Reported)</span>
+              </div>
+            </div>
+
+            <!-- Center Divider Line & Handle -->
+            <div class="compare-slider-line" id="compareLine"></div>
+            <div class="compare-slider-handle" id="compareHandle">
+              <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <p class="text-center text-[11px] text-slate-400 mt-2">
+            ↔ Drag or hover slider left and right to inspect street cleanup transformation
+          </p>
+
+          <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-2 text-xs text-slate-600">
+              <i data-lucide="award" class="w-4 h-4 text-amber-500"></i>
+              <span>Anti-Dumping Measure: BBMP installed 10 potted bougainvillea planters on this footpath.</span>
+            </div>
+            <button onclick="applaudCleanup()" class="px-3.5 py-1.5 rounded-xl bg-civic-600 hover:bg-civic-700 text-white text-xs font-bold shadow transition flex items-center gap-1.5 active:scale-95">
+              <i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i>
+              <span>Applaud Marshall Squad</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Additional Resolved Spot Cards Grid -->
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 pt-2">
+          Recently Resolved Wards Across Bengaluru
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="resolvedCardsGrid">
+          <!-- Populated by JS -->
+        </div>
+
+      </div>
+
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+        <span class="text-slate-500">Every cleanup is archived with public GPS proof</span>
+        <button onclick="closeGalleryModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 transition">
+          Close Gallery
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 3: WARD LEADERBOARD & CIVIC ANALYTICS -->
+  <!-- ========================================================================= -->
+  <div id="leaderboardModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      
+      <!-- Leaderboard Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-amber-600 to-amber-800 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-amber-200">
+            <i data-lucide="trophy" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              Cleanest vs. Most Reported Wards
+              <span class="text-[10px] bg-amber-400/20 text-amber-100 font-mono px-2 py-0.5 rounded-full border border-amber-300/30">
+                ವಾರ್ಡ್ ಶ್ರೇಯಾಂಕ
+              </span>
+            </h3>
+            <p class="text-xs text-amber-100">Live cleanliness index, response velocity, and black spot resolution scores</p>
+          </div>
+        </div>
+        <button onclick="closeLeaderboardModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Leaderboard Content -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        
+        <!-- Summary Cards Bar -->
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+            <p class="text-[10px] uppercase font-bold text-emerald-800">Cleanest Ward</p>
+            <p class="text-sm sm:text-base font-extrabold text-emerald-900 mt-0.5">Malleshwaram</p>
+            <p class="text-[11px] text-emerald-700 font-mono font-bold">94/100 Clean Score</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+            <p class="text-[10px] uppercase font-bold text-amber-800">Fastest BBMP Response</p>
+            <p class="text-sm sm:text-base font-extrabold text-amber-900 mt-0.5">Jayanagar</p>
+            <p class="text-[11px] text-amber-700 font-mono font-bold">2.4 hrs avg turnaround</p>
+          </div>
+          <div class="bg-rose-50 border border-rose-200 rounded-2xl p-3">
+            <p class="text-[10px] uppercase font-bold text-rose-800">Highest Vigilance</p>
+            <p class="text-sm sm:text-base font-extrabold text-rose-900 mt-0.5">Whitefield & HSR</p>
+            <p class="text-[11px] text-rose-700 font-mono font-bold">428 Citizen Reports</p>
+          </div>
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200 text-[10px]">
+              <tr>
+                <th class="py-3 px-4">Rank & Ward Name</th>
+                <th class="py-3 px-3 text-center">Cleanliness Index</th>
+                <th class="py-3 px-3 text-center">Active Spots</th>
+                <th class="py-3 px-3 text-center">Resolution Rate</th>
+                <th class="py-3 px-4 text-right">Avg Action Time</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-medium text-slate-700" id="leaderboardTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl text-[11px] text-slate-500 flex items-center gap-2">
+          <i data-lucide="info" class="w-4 h-4 text-slate-400 flex-shrink-0"></i>
+          <span>
+            Cleanliness scores are refreshed dynamically based on ratio of community-verified black spots to verified cleanups over rolling 30-day windows.
+          </span>
+        </div>
+
+      </div>
+
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeLeaderboardModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-xs transition">
+          Close Leaderboard
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 4: CITIZEN GAMIFICATION & NAMMA CIVIC POINTS -->
+  <!-- ========================================================================= -->
+  <div id="gamificationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      
+      <!-- Gamification Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-civic-700 to-emerald-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-emerald-300">
+            <i data-lucide="medal" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              Namma Civic Points & Rewards
+              <span class="text-[10px] bg-emerald-400/20 text-emerald-200 font-mono px-2 py-0.5 rounded-full border border-emerald-300/30">
+                ನಾಗರಿಕ ಅಂಕಗಳು
+              </span>
+            </h3>
+            <p class="text-xs text-emerald-100">Gamified recognition for Bengaluru's active street guardians</p>
+          </div>
+        </div>
+        <button onclick="closeGamificationModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Gamification Body -->
+      <div class="p-6 overflow-y-auto space-y-5 text-xs sm:text-sm">
+        
+        <!-- User Level Hero Card -->
+        <div class="bg-gradient-to-br from-civic-50 to-teal-50 border border-civic-200 rounded-3xl p-5 relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="px-2.5 py-0.5 rounded-full bg-civic-600 text-white font-bold text-[10px] uppercase tracking-wider">
+                Rank #14 &bull; Ward 151
+              </span>
+              <h4 class="text-lg font-black text-slate-800 mt-1">Kiran Rao</h4>
+              <p class="text-xs text-slate-600 font-medium">Level 3: <strong class="text-civic-700">Ward Watchdog (ವಾರ್ಡ್ ವಾಚ್‌ಡಾಗ್)</strong></p>
+            </div>
+            <div class="text-right">
+              <span class="text-2xl sm:text-3xl font-black text-civic-700" id="modalPointsValue">340</span>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Points</p>
+            </div>
+          </div>
+
+          <!-- Progress Bar to Next Level -->
+          <div class="mt-4">
+            <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+              <span>Progress to Level 4 ("Kasa Warrior")</span>
+              <span>340 / 500 Pts</span>
+            </div>
+            <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-civic-500 to-emerald-600 rounded-full" style="width: 68%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Badges Showcase -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            Badges Earned & Bengaluru Milestones
+          </h4>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            
+            <div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-center">
+              <div class="w-9 h-9 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-base mb-1 shadow-sm">
+                🌟
+              </div>
+              <p class="font-bold text-slate-800 text-xs">First Spotter</p>
+              <p class="text-[10px] text-slate-500">Reported first black spot</p>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-center">
+              <div class="w-9 h-9 mx-auto rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base mb-1 shadow-sm">
+                👥
+              </div>
+              <p class="font-bold text-slate-800 text-xs">Consensus Hero</p>
+              <p class="text-[10px] text-slate-500">Confirmed 5 neighbors' pins</p>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+              <div class="w-9 h-9 mx-auto rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base mb-1 shadow-sm">
+                🐕
+              </div>
+              <p class="font-bold text-slate-800 text-xs">Ward Watchdog</p>
+              <p class="text-[10px] text-slate-500">Active in Koramangala 4th</p>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-center">
+              <div class="w-9 h-9 mx-auto rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-base mb-1 shadow-sm">
+                📸
+              </div>
+              <p class="font-bold text-slate-800 text-xs">Lens of Namma BLR</p>
+              <p class="text-[10px] text-slate-500">Added clear photo proofs</p>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-center opacity-60">
+              <div class="w-9 h-9 mx-auto rounded-full bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-base mb-1">
+                🔒
+              </div>
+              <p class="font-bold text-slate-700 text-xs">Kasa Warrior</p>
+              <p class="text-[10px] text-slate-400">Unlock at 500 Pts</p>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-center opacity-60">
+              <div class="w-9 h-9 mx-auto rounded-full bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-base mb-1">
+                🔒
+              </div>
+              <p class="font-bold text-slate-700 text-xs">Green Bengaluru Legend</p>
+              <p class="text-[10px] text-slate-400">Unlock at 1,000 Pts</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- How to Earn Points Guide -->
+        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2">
+          <h4 class="text-xs font-bold text-slate-800">Point Allocation Rules:</h4>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-civic-700 bg-civic-100 px-1.5 py-0.5 rounded">+50 Pts</span>
+              <span class="text-slate-600">New Spot that reaches consensus</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-civic-700 bg-civic-100 px-1.5 py-0.5 rounded">+20 Pts</span>
+              <span class="text-slate-600">Verifying neighbor's yellow pin</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">+100 Pts</span>
+              <span class="text-slate-600">Spot successfully cleared by BBMP</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">+10 Pts</span>
+              <span class="text-slate-600">Applauding cleanup crews</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Civic Perks / Discounts -->
+        <div class="p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🎁</span>
+            <div>
+              <p class="font-bold text-amber-950">Redeemable Civic Perks:</p>
+              <p class="text-[11px] text-amber-800">10% BMTC Smart Pass discount & BBMP Tree Sapling Certificate</p>
+            </div>
+          </div>
+          <button onclick="alert('Redemption voucher simulated! Code: NAMMA-SWACHH-340 applied to your profile.')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition text-[11px] active:scale-95">
+            Redeem
+          </button>
+        </div>
+
+      </div>
+
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeGamificationModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 text-xs transition">
+          Close Profile
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 5: BBMP MARSHALL RESOLUTION (Mark as Cleaned) -->
+  <!-- ========================================================================= -->
+  <div id="resolveModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      
+      <!-- Resolve Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-slate-900 to-emerald-950 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              BBMP Marshall &bull; Mark as Cleaned
+            </h3>
+            <p class="text-xs text-slate-300" id="resolveTicketSubtitle">Submitting cleanup completion evidence</p>
+          </div>
+        </div>
+        <button onclick="closeResolveModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Resolve Form -->
+      <form id="resolveForm" onsubmit="handleResolveSubmit(event)" class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+        <input type="hidden" id="resolveSpotId" />
+
+        <!-- Spot Details Recap -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-bold text-slate-800" id="resolveSpotTitle">Spot Title</p>
+              <p class="text-xs text-slate-500" id="resolveSpotLandmark">Landmark</p>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-red-100 text-red-800 font-mono text-[10px] font-bold" id="resolveTicketBadge">
+              #BBMP-BLR-xxxx
+            </span>
+          </div>
+        </div>
+
+        <!-- After Cleaned Photo Upload -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            After Cleanup Photo Proof <span class="text-red-500">*</span>
+          </label>
+
+          <div class="relative w-full h-40 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-500 transition overflow-hidden flex flex-col items-center justify-center text-center p-3">
+            <img id="resolvePhotoPreview" src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=800&q=80" alt="Cleaned Street" class="absolute inset-0 w-full h-full object-cover" />
+            
+            <div id="resolveUploadPrompt" class="space-y-1.5 z-10 hidden">
+              <div class="w-8 h-8 mx-auto rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+              </div>
+              <p class="font-bold text-slate-700">Photo captured by Marshall</p>
+            </div>
+          </div>
+
+          <div class="mt-2 flex items-center gap-2">
+            <span class="text-[11px] text-slate-500">Sample Cleaned Photo Loaded. Click to switch:</span>
+            <button type="button" onclick="setResolveSamplePhoto(1)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-[11px]">Clean Sidewalk</button>
+            <button type="button" onclick="setResolveSamplePhoto(2)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-[11px]">Clean Roadway</button>
+          </div>
+        </div>
+
+        <!-- Marshall Notes & Sanitation Truck Details -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">BBMP Marshall Name</label>
+            <input type="text" id="resolveMarshallName" value="Marshall Suresh Kumar (South SWM)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Compactor Vehicle #</label>
+            <input type="text" id="resolveVehicleNo" value="KA-01-EA-4521 Auto Tipper" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Cleanup Actions & Prevention Note</label>
+          <input type="text" id="resolveActionNote" value="Debris completely hauled to landfill; bleaching powder sprayed." class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800" />
+        </div>
+
+        <!-- Submit & Actions -->
+        <div class="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+          <button type="button" onclick="closeResolveModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold transition text-xs">
+            Cancel
+          </button>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 text-xs active:scale-95">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Confirm Cleanup & Turn Green</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 6: PRESENTATION & PITCH WALKTHROUGH GUIDE -->
+  <!-- ========================================================================= -->
+  <div id="pitchGuideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      
+      <!-- Pitch Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-civic-900 to-emerald-950 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-civic-600/40 border border-civic-400/30 flex items-center justify-center text-emerald-300">
+            <i data-lucide="presentation" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              Live Demo & Pitch Script
+              <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-2 py-0.5 rounded-full border border-emerald-400/30">
+                2-Minute Walkthrough
+              </span>
+            </h3>
+            <p class="text-xs text-slate-300">Step-by-step speaker script for presenting to evaluators, judges, or civic leaders</p>
+          </div>
+        </div>
+        <button onclick="closePitchGuideModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Pitch Script Body -->
+      <div class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+        
+        <!-- Step 1 -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <div class="flex items-start gap-3">
+            <span class="w-7 h-7 rounded-full bg-civic-600 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0">1</span>
+            <div class="space-y-1">
+              <h4 class="font-bold text-slate-900">The Problem: Unverified Complaints & Persistent Black Spots</h4>
+              <p class="text-xs text-slate-600">
+                <em>"Bengaluru generates over 5,500 tonnes of municipal waste daily. Traditional complaint portals suffer from spam, single-person false reports, and zero consensus. BBMP waste trucks are sent on wild goose chases while genuine chronic black spots linger for weeks."</em>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <div class="flex items-start gap-3">
+            <span class="w-7 h-7 rounded-full bg-amber-500 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0">2</span>
+            <div class="space-y-1">
+              <h4 class="font-bold text-slate-900">The Innovation: 50m Community Consensus Engine</h4>
+              <p class="text-xs text-slate-600">
+                <em>"Namma Clean Bengaluru introduces a crowd-consensus threshold: any new dump starts as a <strong>Yellow Pin (Pending 1/5)</strong>. Only when 5 nearby residents within a 50m radius independently confirm the spot does our algorithm mark it as <strong>TRUE</strong> and escalate."</em>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+          <div class="flex items-start gap-3">
+            <span class="w-7 h-7 rounded-full bg-red-600 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0">3</span>
+            <div class="space-y-2 flex-1">
+              <div class="flex items-center justify-between">
+                <h4 class="font-bold text-slate-900">Live Transition Demo (Pending ➔ Verified Red Pin)</h4>
+                <button onclick="closePitchGuideModal(); triggerSimulateSpike();" class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-bold text-xs rounded-lg shadow transition flex items-center gap-1 active:scale-95">
+                  <i data-lucide="zap" class="w-3 h-3 fill-current"></i>
+                  <span>Trigger Live Spike Now</span>
+                </button>
+              </div>
+              <p class="text-xs text-slate-700">
+                <em>"Look at Koramangala 4th Block (currently at 4/5). When one more neighbor clicks '+1 Verify'—or we trigger our bulk simulation—the engine instantly validates the spot, switches the marker to a pulsing Crimson Red Pin, generates official BBMP Ticket #BBMP-BLR-xxxx, and notifies the South Zone SWM Marshall."</em>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <div class="flex items-start gap-3">
+            <span class="w-7 h-7 rounded-full bg-slate-800 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0">4</span>
+            <div class="space-y-2 flex-1">
+              <div class="flex items-center justify-between">
+                <h4 class="font-bold text-slate-900">The Municipal Side: BBMP Marshall Console</h4>
+                <button onclick="closePitchGuideModal(); setAppRole('marshall');" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-amber-300 font-bold text-xs rounded-lg border border-slate-700 transition flex items-center gap-1">
+                  <i data-lucide="shield" class="w-3 h-3"></i>
+                  <span>Switch to Marshall View</span>
+                </button>
+              </div>
+              <p class="text-xs text-slate-600">
+                <em>"BBMP Marshalls switch into their dedicated console. They only see verified hotspots sorted by urgency. Once cleared, they upload photographic proof, turning the red pin into an Emerald Green pin and archiving the result into our public 'Swachh Wins' Before/After gallery."</em>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+          <div class="flex items-start gap-3">
+            <span class="w-7 h-7 rounded-full bg-emerald-600 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0">5</span>
+            <div class="space-y-1">
+              <h4 class="font-bold text-slate-900">Gamification & Ward Accountability</h4>
+              <p class="text-xs text-slate-700">
+                <em>"Citizens earn <strong>Namma Civic Points</strong> (+50 for report, +20 for verification, +100 for verified cleanup) unlocking perks like BMTC pass discounts. Meanwhile, the <strong>Ward Leaderboard</strong> holds local corporators and ward marshalls publicly accountable."</em>
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+        <span class="text-slate-500">Ready for Live Hackathon / Project Pitch</span>
+        <button onclick="closePitchGuideModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700 transition">
+          Close Guide
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- FLOATING TOAST NOTIFICATION CONTAINER -->
+  <!-- ========================================================================= -->
+  <div id="toastContainer" class="fixed top-20 right-4 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT APPLICATION CORE -->
+  <!-- ========================================================================= -->
+  <script>
+    /* =========================================================================
+     * INITIAL REALISTIC BENGALURU DATASET
+     * ========================================================================= */
+    const INITIAL_BENGALURU_SPOTS = [
+      {
+        id: 'spot-1',
+        title: 'Footpath Plastic & Food Dump',
+        landmark: '100ft Road, near Corner House Ice Cream & 12th Main',
+        ward: 'Ward 89 - Jogupalya / Indiranagar',
+        zone: 'East Zone',
+        coords: [12.9784, 77.6408],
+        category: 'dry_plastic',
+        status: 'pending', // pending | verified | cleaned
+        reportsCount: 3,
+        threshold: 5,
+        reporters: ['Priya N.', 'Rohan M.', 'Anand K.'],
+        timestamp: '2 hours ago',
+        photo: 'https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=800&q=80',
+        notes: 'Footpath completely blocked for pedestrians, spilling onto main road.',
+        ticketId: null,
+        cleanedData: null
+      },
+      {
+        id: 'spot-2',
+        title: 'Illegal Construction Debris (C&D) on 80ft Road',
+        landmark: 'Koramangala 4th Block, opposite Maharaja Signal',
+        ward: 'Ward 151 - Koramangala',
+        zone: 'South Zone',
+        coords: [12.9345, 77.6265],
+        category: 'construction',
+        status: 'pending', // 4/5 reports - PERFECT SPOT FOR LIVE DEMO SPIKE!
+        reportsCount: 4,
+        threshold: 5,
+        reporters: ['Karthik S.', 'Deepa R.', 'Venkatesh P.', 'Sneha G.'],
+        timestamp: '45 mins ago',
+        photo: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80',
+        notes: 'Night dumping of remodeling debris, causing two-wheeler skidding hazard.',
+        ticketId: null,
+        cleanedData: null
+      },
+      {
+        id: 'spot-3',
+        title: 'Overflowing Storm Drain Mixed Black Spot',
+        landmark: 'HSR Layout Sector 2, 27th Main near Parangi Palya Lake road',
+        ward: 'Ward 174 - HSR Layout',
+        zone: 'Bommanahalli Zone',
+        coords: [12.9116, 77.6476],
+        category: 'mixed',
+        status: 'verified', // Red pulsing
+        reportsCount: 7,
+        threshold: 5,
+        reporters: ['Arun V.', 'Divya C.', 'Nikhil M.', 'Sunita P.', 'BBMP Marshals'],
+        timestamp: '1 hour ago',
+        photo: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?auto=format&fit=crop&w=800&q=80',
+        notes: 'Stray dogs tearing plastic bags, pungent odor, risk of drain choking before monsoon.',
+        ticketId: '#BBMP-BLR-8492',
+        escalatedAt: '1 hour ago',
+        dispatchUnit: 'Marshall Suresh Kumar (Zone 4) - Compact Truck KA-01-EA-8821 en route',
+        priority: 'Urgent',
+        cleanedData: null
+      },
+      {
+        id: 'spot-4',
+        title: 'Commercial Kitchen Wet Waste Dump',
+        landmark: 'Whitefield Main Road, near Hope Farm Circle & ITPL back gate',
+        ward: 'Ward 84 - Hagadur / Whitefield',
+        zone: 'Mahadevapura Zone',
+        coords: [12.9698, 77.7500],
+        category: 'wet_organic',
+        status: 'verified',
+        reportsCount: 9,
+        threshold: 5,
+        reporters: ['Girish T.', 'Meenakshi K.', 'Sameer B.', 'Techie Volunteers'],
+        timestamp: '3 hours ago',
+        photo: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80',
+        notes: 'Unsegregated commercial kitchen waste dumped overnight.',
+        ticketId: '#BBMP-BLR-7319',
+        escalatedAt: '3 hours ago',
+        dispatchUnit: 'Marshall Manjunath N. - Heavy Tipper Dispatched',
+        priority: 'High',
+        cleanedData: null
+      },
+      {
+        id: 'spot-5',
+        title: 'Discarded Electronics & Battery Scrap',
+        landmark: 'Electronic City Phase 1, Neeladri Road near Wipro Gate 5',
+        ward: 'Ward 192 - Begur / E-City',
+        zone: 'Bommanahalli Zone',
+        coords: [12.8452, 77.6602],
+        category: 'ewaste',
+        status: 'pending',
+        reportsCount: 2,
+        threshold: 5,
+        reporters: ['Naveen Techie', 'Ashwini B.'],
+        timestamp: '5 hours ago',
+        photo: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=800&q=80',
+        notes: 'Hazardous electronic scrap left open near pedestrian crossing.',
+        ticketId: null,
+        cleanedData: null
+      },
+      {
+        id: 'spot-6',
+        title: 'Sampige Road Mandi Market Vegetable Waste',
+        landmark: 'Malleshwaram 8th Cross, behind vegetable mandi',
+        ward: 'Ward 45 - Malleshwaram',
+        zone: 'West Zone',
+        coords: [12.9982, 77.5703],
+        category: 'mixed',
+        status: 'cleaned', // Green
+        reportsCount: 6,
+        threshold: 5,
+        reporters: ['Vani Rao', 'Shankar M.', 'Malleshwaram Resident Assn'],
+        timestamp: 'Yesterday',
+        photo: 'https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=800&q=80',
+        notes: 'Cleared by BBMP Marshall team in 3.5 hrs. Potted plants placed to deter re-dumping.',
+        ticketId: '#BBMP-BLR-6104',
+        cleanedData: {
+          cleanedAt: 'Yesterday, 4:30 PM',
+          afterPhoto: 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=800&q=80',
+          marshall: 'Malleshwaram Ward 45 Quick Action Marshall Squad',
+          vehicle: 'KA-04-MB-2201 Compactor',
+          actionNote: 'Potted bougainvillea planters installed; Rangoli drawn.'
+        }
+      },
+      {
+        id: 'spot-7',
+        title: 'Jayanagar 4th Block Complex Alleyway Black Spot',
+        landmark: 'Behind Jayanagar Shopping Complex, near 11th Main',
+        ward: 'Ward 153 - Jayanagar 4th Block',
+        zone: 'South Zone',
+        coords: [12.9308, 77.5838],
+        category: 'dry_plastic',
+        status: 'cleaned',
+        reportsCount: 8,
+        threshold: 5,
+        reporters: ['Harish Kumar', 'Leela S.'],
+        timestamp: '2 days ago',
+        photo: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80',
+        notes: 'Citizens confirmed cleanup with 5/5 stars rating.',
+        ticketId: '#BBMP-BLR-5891',
+        cleanedData: {
+          cleanedAt: '2 days ago, 11:00 AM',
+          afterPhoto: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80',
+          marshall: 'South Zone Marshall Squad #12',
+          vehicle: 'KA-05-AA-9122 Auto Tipper',
+          actionNote: 'Completely sanitized and CCTV signage placed.'
+        }
+      },
+      {
+        id: 'spot-8',
+        title: 'Hebbal Flyover Ramp Construction Rubble',
+        landmark: 'Bellary Road, under Hebbal flyover ramp towards Airport',
+        ward: 'Ward 7 - Hebbal',
+        zone: 'Yelahanka Zone',
+        coords: [13.0358, 77.5970],
+        category: 'construction',
+        status: 'verified',
+        reportsCount: 6,
+        threshold: 5,
+        reporters: ['Airport Commuters', 'Siddharth R.'],
+        timestamp: '4 hours ago',
+        photo: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80',
+        notes: 'Rubble spill encroaching on single-lane airport service road.',
+        ticketId: '#BBMP-BLR-9042',
+        escalatedAt: '4 hours ago',
+        dispatchUnit: 'Yelahanka JCB & Dumper Squad',
+        priority: 'Severe (Traffic Obstruction)',
+        cleanedData: null
+      }
+    ];
+
+    /* Sample photos for easy presentation demo */
+    const SAMPLE_GARBAGE_PHOTOS = {
+      mixed: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?auto=format&fit=crop&w=800&q=80',
+      plastic: 'https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=800&q=80',
+      debris: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80',
+      organic: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80',
+      ewaste: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=800&q=80'
+    };
+
+    /* Leaderboard Data */
+    const WARD_LEADERBOARD_DATA = [
+      { rank: 1, name: 'Malleshwaram (Ward 45)', zone: 'West', score: 94, active: 1, resolved: 42, avgTime: '2.8 hrs', trend: 'up' },
+      { rank: 2, name: 'Jayanagar (Ward 153)', zone: 'South', score: 91, active: 2, resolved: 39, avgTime: '2.4 hrs', trend: 'up' },
+      { rank: 3, name: 'Koramangala (Ward 151)', zone: 'South', score: 79, active: 4, resolved: 51, avgTime: '4.1 hrs', trend: 'same' },
+      { rank: 4, name: 'Indiranagar (Ward 89)', zone: 'East', score: 76, active: 5, resolved: 48, avgTime: '4.5 hrs', trend: 'down' },
+      { rank: 5, name: 'HSR Layout (Ward 174)', zone: 'Bommanahalli', score: 71, active: 6, resolved: 34, avgTime: '5.2 hrs', trend: 'same' },
+      { rank: 6, name: 'Hebbal (Ward 7)', zone: 'Yelahanka', score: 68, active: 7, resolved: 29, avgTime: '5.8 hrs', trend: 'up' },
+      { rank: 7, name: 'Whitefield (Ward 84)', zone: 'Mahadevapura', score: 62, active: 11, resolved: 40, avgTime: '7.1 hrs', trend: 'down' },
+      { rank: 8, name: 'Electronic City (Ward 192)', zone: 'Bommanahalli', score: 60, active: 9, resolved: 22, avgTime: '7.5 hrs', trend: 'down' }
+    ];
+
+    /* =========================================================================
+     * STATE MANAGEMENT & LOCAL STORAGE
+     * ========================================================================= */
+    let spotsData = [];
+    let currentRole = 'citizen'; // 'citizen' | 'marshall'
+    let currentFilterStatus = 'all'; // 'all' | 'pending' | 'verified' | 'cleaned'
+    let userPoints = 340;
+    let applaudedCount = 148;
+    let map = null;
+    let markersLayer = null;
+    let activePopupMarker = null;
+    let currentLang = 'en'; // 'en' | 'kn'
+
+    function loadInitialState() {
+      const storedSpots = localStorage.getItem('namma_clean_blr_spots');
+      if (storedSpots) {
+        try {
+          spotsData = JSON.parse(storedSpots);
+        } catch (e) {
+          spotsData = JSON.parse(JSON.stringify(INITIAL_BENGALURU_SPOTS));
+        }
+      } else {
+        spotsData = JSON.parse(JSON.stringify(INITIAL_BENGALURU_SPOTS));
+      }
+
+      const storedPoints = localStorage.getItem('namma_clean_blr_points');
+      if (storedPoints) {
+        userPoints = parseInt(storedPoints, 10);
+      }
+      updatePointsDisplay();
+    }
+
+    function saveState() {
+      localStorage.setItem('namma_clean_blr_spots', JSON.stringify(spotsData));
+      localStorage.setItem('namma_clean_blr_points', userPoints.toString());
+      updateStatsCounters();
+    }
+
+    function resetDemoData() {
+      if (confirm('Reset all black spots back to demo default state?')) {
+        spotsData = JSON.parse(JSON.stringify(INITIAL_BENGALURU_SPOTS));
+        userPoints = 340;
+        saveState();
+        refreshMapMarkers();
+        renderSpotsList();
+        updatePointsDisplay();
+        showToast('Demo data reset successfully!', 'success');
+        flyToCityCenter();
+      }
+    }
+
+    /* =========================================================================
+     * SOUND EFFECTS SYNTHESIZER (Web Audio API - No external MP3 needed!)
+     * ========================================================================= */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(type = 'chime') {
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'chime') {
+          // Pleasant high chord for point gains & upvotes
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, now); // D5
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if (type === 'verified') {
+          // Urgent trumpeted alert for BBMP Ticket generation
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.1);
+          osc.frequency.setValueAtTime(880, now + 0.2);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'cleaned') {
+          // Major chord victory chime
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+          osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        }
+      } catch (e) {
+        // Audio context may require initial user gesture
+      }
+    }
+
+    /* =========================================================================
+     * LEAFLET MAP INITIALIZATION & CUSTOM PINS
+     * ========================================================================= */
+    function initMap() {
+      // Center on Bengaluru (Vidhana Soudha / MG Road central coordinates)
+      const blrCoords = [12.9550, 77.6200];
+      
+      map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false
+      }).setView(blrCoords, 12);
+
+      // Public Free Basemaps (Zero API key required, no watermarks, no localhost/referer blocks)
+      const esriStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Street Map'
+      }).addTo(map);
+
+      const osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: 'abc',
+        attribution: '&copy; OpenStreetMap contributors, HOT'
+      });
+
+      const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Satellite'
+      });
+
+      // Layer switcher control for instant toggle between styles
+      const baseMaps = {
+        "ArcGIS Streets": esriStreet,
+        "OSM Humanitarian": osmHot,
+        "Satellite Imagery": esriImagery
+      };
+      L.control.layers(baseMaps, null, { position: 'bottomright', collapsed: true }).addTo(map);
+
+      // Re-position zoom control to bottom right
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+
+      // Map Click Event -> Prompt user to drop a pin or open reporting modal
+      map.on('click', function(e) {
+        const { lat, lng } = e.latlng;
+        openNewReportModalWithCoords(lat, lng);
+      });
+
+      window.addEventListener('resize', () => {
+        if (map) map.invalidateSize();
+      });
+
+      refreshMapMarkers();
+    }
+
+    function createPinHtml(spot) {
+      if (spot.status === 'pending') {
+        // Yellow Pin
+        return `
+          <div class="pin-bubble" title="${spot.title} (${spot.reportsCount}/${spot.threshold} Reports)">
+            <div class="w-8 h-8 rounded-full bg-amber-500 border-2 border-white shadow-lg flex items-center justify-center text-white font-extrabold text-xs">
+              ${spot.reportsCount}
+            </div>
+            <div class="absolute -bottom-1 w-2 h-2 bg-amber-600 rotate-45"></div>
+          </div>
+        `;
+      } else if (spot.status === 'verified') {
+        // Crimson Pulsing Pin
+        return `
+          <div class="pin-bubble" title="VERIFIED BLACK SPOT: ${spot.title} (${spot.ticketId})">
+            <span class="pulsing-ring bg-red-500"></span>
+            <div class="relative w-9 h-9 rounded-full bg-red-600 border-2 border-white shadow-xl flex items-center justify-center text-white font-black text-xs">
+              !
+            </div>
+            <div class="absolute -bottom-1 w-2.5 h-2.5 bg-red-700 rotate-45"></div>
+          </div>
+        `;
+      } else {
+        // Cleaned Emerald Green Pin
+        return `
+          <div class="pin-bubble" title="Cleaned by BBMP: ${spot.title}">
+            <div class="w-8 h-8 rounded-full bg-emerald-600 border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs">
+              ✓
+            </div>
+            <div class="absolute -bottom-1 w-2 h-2 bg-emerald-700 rotate-45"></div>
+          </div>
+        `;
+      }
+    }
+
+    function refreshMapMarkers() {
+      if (!markersLayer) return;
+      markersLayer.clearLayers();
+
+      const filtered = getFilteredSpots();
+
+      filtered.forEach(spot => {
+        const pinIcon = L.divIcon({
+          className: 'custom-pin-marker',
+          html: createPinHtml(spot),
+          iconSize: [36, 36],
+          iconAnchor: [18, 36],
+          popupAnchor: [0, -36]
+        });
+
+        const marker = L.marker(spot.coords, { icon: pinIcon });
+        marker.bindPopup(buildPopupHtml(spot), {
+          maxWidth: 320,
+          className: 'custom-leaflet-popup'
+        });
+
+        marker.on('popupopen', () => {
+          activePopupMarker = marker;
+          lucide.createIcons();
+        });
+
+        markersLayer.addLayer(marker);
+      });
+
+      updateStatsCounters();
+    }
+
+    function buildPopupHtml(spot) {
+      const isVerified = spot.status === 'verified';
+      const isCleaned = spot.status === 'cleaned';
+      const isPending = spot.status === 'pending';
+
+      const progressPercent = Math.min(100, Math.round((spot.reportsCount / spot.threshold) * 100));
+
+      let statusBadge = '';
+      if (isPending) {
+        statusBadge = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">🟡 Pending Consensus (${spot.reportsCount}/${spot.threshold})</span>`;
+      } else if (isVerified) {
+        statusBadge = `<span class="bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-300 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>🔴 Verified Black Spot</span>`;
+      } else {
+        statusBadge = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">🟢 Cleaned by BBMP</span>`;
+      }
+
+      let categoryBadge = getCategoryBadge(spot.category);
+
+      let actionSection = '';
+      if (isPending) {
+        actionSection = `
+          <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+            <!-- Progress Bar -->
+            <div>
+              <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
+                <span>Community Consensus Progress</span>
+                <span class="text-amber-600">${spot.reportsCount}/${spot.threshold} Reports</span>
+              </div>
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: ${progressPercent}%;"></div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 gap-1.5 pt-1">
+              <button onclick="upvoteSpot('${spot.id}')" class="px-2.5 py-1.5 bg-civic-600 hover:bg-civic-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow transition flex items-center justify-center gap-1">
+                <span>Verify (+1)</span>
+              </button>
+              <button onclick="simulateBulkVerification('${spot.id}')" class="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow transition flex items-center justify-center gap-1" title="Instant jump to 5/5 reports for demo">
+                <i data-lucide="zap" class="w-3 h-3 fill-current"></i>
+                <span>Simulate Bulk (+4)</span>
+              </button>
+            </div>
+            <p class="text-[9px] text-slate-400 text-center">Consensus triggers within 50m radius</p>
+          </div>
+        `;
+      } else if (isVerified) {
+        actionSection = `
+          <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+            <div class="bg-red-50 p-2 rounded-xl border border-red-200 text-[11px] text-red-900">
+              <div class="flex justify-between items-center font-bold">
+                <span>BBMP Ticket Assigned:</span>
+                <span class="font-mono text-red-700 font-extrabold">${spot.ticketId}</span>
+              </div>
+              <p class="text-[10px] text-red-700 mt-0.5">High Priority Queue &bull; Marshall dispatched</p>
+            </div>
+
+            ${currentRole === 'marshall' ? `
+              <button onclick="openResolveModal('${spot.id}')" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span>Mark as Cleaned (Resolve)</span>
+              </button>
+            ` : `
+              <div class="text-center">
+                <span class="text-[10px] text-slate-400">Escalated to Ward SWM Control Room</span>
+              </div>
+            `}
+          </div>
+        `;
+      } else {
+        // Cleaned
+        actionSection = `
+          <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+            <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-[11px] text-emerald-900">
+              <p class="font-bold">Restoration Completed ✓</p>
+              <p class="text-[10px] text-emerald-700">${spot.cleanedData ? spot.cleanedData.cleanedAt : 'Resolved'}</p>
+            </div>
+            <button onclick="openGalleryModal()" class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
+              <i data-lucide="eye" class="w-3.5 h-3.5 text-emerald-600"></i>
+              <span>View Before & After Proof</span>
+            </button>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="w-72 sm:w-80 overflow-hidden font-sans">
+          <!-- Photo Header -->
+          <div class="relative h-36 w-full bg-slate-200 overflow-hidden">
+            <img src="${spot.photo}" alt="${spot.title}" class="w-full h-full object-cover" />
+            <div class="absolute top-2 left-2 flex gap-1">
+              ${statusBadge}
+            </div>
+            <div class="absolute top-2 right-2">
+              ${categoryBadge}
+            </div>
+          </div>
+
+          <!-- Content Details -->
+          <div class="p-3.5">
+            <h4 class="font-bold text-slate-900 text-xs sm:text-sm leading-snug">${spot.title}</h4>
+            <p class="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-civic-600 flex-shrink-0"></i>
+              <span class="truncate">${spot.landmark}</span>
+            </p>
+            <p class="text-[10px] text-slate-400 font-semibold mt-0.5">${spot.ward}</p>
+            
+            <p class="text-xs text-slate-600 mt-2 line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+              "${spot.notes}"
+            </p>
+
+            ${actionSection}
+          </div>
+        </div>
+      `;
+    }
+
+    function getCategoryBadge(category) {
+      switch (category) {
+        case 'dry_plastic':
+          return `<span class="bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow">Plastic/Dry</span>`;
+        case 'wet_organic':
+          return `<span class="bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow">Wet Waste</span>`;
+        case 'construction':
+          return `<span class="bg-amber-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow">C&D Debris</span>`;
+        case 'ewaste':
+          return `<span class="bg-purple-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow">E-Waste</span>`;
+        case 'mixed':
+        default:
+          return `<span class="bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow">Mixed Black Spot</span>`;
+      }
+    }
+
+    /* =========================================================================
+     * CONSENSUS ENGINE: UPVOTE & BULK SIMULATION
+     * ========================================================================= */
+    function upvoteSpot(spotId) {
+      const spot = spotsData.find(s => s.id === spotId);
+      if (!spot) return;
+
+      spot.reportsCount += 1;
+      userPoints += 20;
+      updatePointsDisplay();
+      playBeep('chime');
+
+      showToast(`+20 Civic Points! You verified spot: "${spot.landmark}". Consensus count is now ${spot.reportsCount}/${spot.threshold}.`, 'success');
+
+      // Check consensus threshold trigger!
+      checkConsensusThreshold(spot);
+
+      saveState();
+      refreshMapMarkers();
+      renderSpotsList();
+
+      if (activePopupMarker) {
+        activePopupMarker.setPopupContent(buildPopupHtml(spot));
+        lucide.createIcons();
+      }
+    }
+
+    function simulateBulkVerification(spotId) {
+      const spot = spotsData.find(s => s.id === spotId);
+      if (!spot) return;
+
+      // Add bulk reports to instantly hit or exceed 5
+      const needed = Math.max(1, spot.threshold - spot.reportsCount);
+      spot.reportsCount += needed + 1; // e.g. 5 or 6
+
+      checkConsensusThreshold(spot, true);
+
+      saveState();
+      refreshMapMarkers();
+      renderSpotsList();
+
+      if (activePopupMarker) {
+        activePopupMarker.setPopupContent(buildPopupHtml(spot));
+        lucide.createIcons();
+      }
+    }
+
+    function triggerSimulateSpike() {
+      // Find the first pending spot or spot-2 (Koramangala which is at 4/5)
+      let target = spotsData.find(s => s.id === 'spot-2' && s.status === 'pending');
+      if (!target) {
+        target = spotsData.find(s => s.status === 'pending');
+      }
+
+      if (!target) {
+        showToast('All black spots are currently verified or cleaned! Reset demo or add a new spot to test spike.', 'info');
+        return;
+      }
+
+      // Fly to spot coordinates
+      flyToLocation(target.coords[0], target.coords[1], 16, target.landmark);
+      setTimeout(() => {
+        simulateBulkVerification(target.id);
+      }, 600);
+    }
+
+    function checkConsensusThreshold(spot, isBulkSimulated = false) {
+      if (spot.reportsCount >= spot.threshold && spot.status === 'pending') {
+        spot.status = 'verified';
+        spot.ticketId = `#BBMP-BLR-${Math.floor(1000 + Math.random() * 9000)}`;
+        spot.escalatedAt = 'Just now';
+        spot.dispatchUnit = 'BBMP SWM Marshall Quick Response Unit Assigned';
+        spot.priority = 'High';
+
+        userPoints += 50; // Bonus for consensus achievement
+        updatePointsDisplay();
+
+        playBeep('verified');
+
+        showToast(
+          `🎉 CONSENSUS THRESHOLD REACHED (${spot.reportsCount}/${spot.threshold})! Spot automatically verified as a Black Spot. Dispatched to BBMP Control Room as Ticket ${spot.ticketId}!`,
+          'alert'
+        );
+      }
+    }
+
+    /* =========================================================================
+     * SIDEBAR SPOTS FEED & FILTERS
+     * ========================================================================= */
+    function getFilteredSpots() {
+      const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+      const wardFilter = document.getElementById('filterWardSelect')?.value || 'all';
+      const categoryFilter = document.getElementById('filterCategorySelect')?.value || 'all';
+
+      return spotsData.filter(spot => {
+        // Status filter
+        if (currentFilterStatus !== 'all' && spot.status !== currentFilterStatus) {
+          return false;
+        }
+
+        // Marshall mode only shows verified spots by default if desired, or all
+        if (currentRole === 'marshall' && currentFilterStatus === 'all') {
+          // In Marshall view, show verified spots on top
+        }
+
+        // Ward filter
+        if (wardFilter !== 'all' && !spot.ward.toLowerCase().includes(wardFilter.toLowerCase())) {
+          return false;
+        }
+
+        // Category filter
+        if (categoryFilter !== 'all' && spot.category !== categoryFilter) {
+          return false;
+        }
+
+        // Search Query
+        if (query) {
+          const matchTitle = spot.title.toLowerCase().includes(query);
+          const matchLandmark = spot.landmark.toLowerCase().includes(query);
+          const matchWard = spot.ward.toLowerCase().includes(query);
+          const matchTicket = spot.ticketId && spot.ticketId.toLowerCase().includes(query);
+          return matchTitle || matchLandmark || matchWard || matchTicket;
+        }
+
+        return true;
+      });
+    }
+
+    function renderSpotsList() {
+      const container = document.getElementById('spotsFeedContainer');
+      if (!container) return;
+
+      const filtered = getFilteredSpots();
+      
+      // Update subtitle count
+      const subtitle = document.getElementById('spotsListSubtitle');
+      if (subtitle) {
+        subtitle.textContent = `Showing ${filtered.length} ${currentFilterStatus !== 'all' ? currentFilterStatus : 'active'} reports`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+              <i data-lucide="map-pin-off" class="w-6 h-6"></i>
+            </div>
+            <p class="font-bold text-slate-700 text-sm">No black spots found</p>
+            <p class="text-xs text-slate-400">Try adjusting your filters or click anywhere on the map to report a spot!</p>
+            <button onclick="resetFilters()" class="text-xs text-civic-700 font-bold underline">
+              Reset Filters
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      // Sort: Verified (high priority) first, then pending (near threshold), then cleaned
+      filtered.sort((a, b) => {
+        const order = { verified: 1, pending: 2, cleaned: 3 };
+        return order[a.status] - order[b.status];
+      });
+
+      container.innerHTML = filtered.map(spot => {
+        const isVerified = spot.status === 'verified';
+        const isCleaned = spot.status === 'cleaned';
+        const isPending = spot.status === 'pending';
+
+        let badgeHtml = '';
+        let borderClass = 'border-slate-200';
+
+        if (isPending) {
+          badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">🟡 Pending (${spot.reportsCount}/${spot.threshold})</span>`;
+          borderClass = 'hover:border-amber-400';
+        } else if (isVerified) {
+          badgeHtml = `<span class="bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping"></span>🔴 Verified (${spot.ticketId})</span>`;
+          borderClass = 'border-red-200 hover:border-red-400 bg-red-50/20';
+        } else {
+          badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">🟢 Cleaned</span>`;
+          borderClass = 'hover:border-emerald-400 bg-emerald-50/10';
+        }
+
+        return `
+          <div class="pt-3 first:pt-0">
+            <div class="bg-white p-3 rounded-2xl border ${borderClass} shadow-sm hover:shadow-md transition cursor-pointer group" onclick="focusSpotOnMap('${spot.id}')">
+              
+              <div class="flex gap-3">
+                <!-- Thumbnail -->
+                <div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                  <img src="${spot.photo}" alt="${spot.title}" class="w-full h-full object-cover group-hover:scale-105 transition" />
+                  <span class="absolute bottom-1 right-1 text-[8px] font-bold px-1 rounded bg-black/60 text-white">
+                    ${spot.category.split('_')[0].toUpperCase()}
+                  </span>
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between gap-1 mb-1">
+                    ${badgeHtml}
+                    <span class="text-[10px] text-slate-400">${spot.timestamp}</span>
+                  </div>
+
+                  <h4 class="font-bold text-slate-800 text-xs truncate group-hover:text-civic-700 transition">
+                    ${spot.title}
+                  </h4>
+                  <p class="text-[11px] text-slate-500 truncate mt-0.5 flex items-center gap-1">
+                    <i data-lucide="map-pin" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
+                    <span>${spot.landmark}</span>
+                  </p>
+                  <p class="text-[10px] text-slate-400 font-medium">${spot.ward}</p>
+                </div>
+              </div>
+
+              <!-- Quick action bar on card -->
+              <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span class="text-[10px] text-slate-400">
+                  ${isVerified ? `Priority: <strong class="text-red-600">${spot.priority || 'High'}</strong>` : (isPending ? `${spot.threshold - spot.reportsCount} more verify needed` : 'Cleaned by BBMP')}
+                </span>
+
+                <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+                  ${isPending ? `
+                    <button onclick="upvoteSpot('${spot.id}')" class="px-2 py-1 bg-civic-50 hover:bg-civic-100 text-civic-700 font-bold rounded-lg border border-civic-200 text-[11px] transition">
+                      +1 Verify
+                    </button>
+                    <button onclick="simulateBulkVerification('${spot.id}')" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-[11px] transition" title="Bulk verify for demo">
+                      Bulk (+4)
+                    </button>
+                  ` : (isVerified && currentRole === 'marshall' ? `
+                    <button onclick="openResolveModal('${spot.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] transition">
+                      Mark Cleaned
+                    </button>
+                  ` : `
+                    <button onclick="focusSpotOnMap('${spot.id}')" class="text-civic-600 hover:text-civic-800 font-bold text-[11px] flex items-center gap-0.5">
+                      <span>View on Map</span>
+                      <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                    </button>
+                  `)}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function setFilterStatus(status) {
+      currentFilterStatus = status;
+
+      // Update pill classes
+      document.querySelectorAll('.filter-status-pill').forEach(btn => {
+        btn.classList.remove('bg-civic-600', 'text-white', 'shadow-sm');
+        btn.classList.add('bg-white', 'text-slate-600', 'border', 'border-slate-200');
+      });
+
+      const activeBtn = document.getElementById(`filterBtn-${status}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-slate-600', 'border-slate-200');
+        activeBtn.classList.add('bg-civic-600', 'text-white', 'shadow-sm');
+      }
+
+      renderSpotsList();
+      refreshMapMarkers();
+    }
+
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterWardSelect').value = 'all';
+      document.getElementById('filterCategorySelect').value = 'all';
+      setFilterStatus('all');
+    }
+
+    function updateStatsCounters() {
+      const activeCount = spotsData.filter(s => s.status === 'pending').length;
+      const verifiedCount = spotsData.filter(s => s.status === 'verified').length;
+      const cleanedCount = spotsData.filter(s => s.status === 'cleaned').length;
+      const totalCount = spotsData.length;
+
+      // Top nav numbers
+      const elActive = document.getElementById('statActiveSpots');
+      if (elActive) elActive.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> ${activeCount}`;
+
+      const elVerified = document.getElementById('statVerifiedSpots');
+      if (elVerified) elVerified.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> ${verifiedCount}`;
+
+      const elCleaned = document.getElementById('statCleanedSpots');
+      if (elCleaned) elCleaned.innerHTML = `<i data-lucide="check-check" class="w-4 h-4"></i> ${cleanedCount}`;
+
+      // Filter pills count
+      const cAll = document.getElementById('count-all');
+      if (cAll) cAll.textContent = totalCount;
+
+      const cPending = document.getElementById('count-pending');
+      if (cPending) cPending.textContent = activeCount;
+
+      const cVerified = document.getElementById('count-verified');
+      if (cVerified) cVerified.textContent = verifiedCount;
+
+      const cCleaned = document.getElementById('count-cleaned');
+      if (cCleaned) cCleaned.textContent = cleanedCount;
+
+      lucide.createIcons();
+    }
+
+    /* =========================================================================
+     * MAP NAVIGATION & GEO-PINNING HELPERS
+     * ========================================================================= */
+    function flyToCityCenter() {
+      if (map) {
+        map.flyTo([12.9550, 77.6200], 12, { duration: 1.2 });
+      }
+    }
+
+    function flyToLocation(lat, lng, zoom = 15, name = '') {
+      if (map) {
+        map.flyTo([lat, lng], zoom, { duration: 1.2 });
+        if (name) {
+          showToast(`Focused map on ${name}`, 'info');
+        }
+      }
+    }
+
+    function focusSpotOnMap(spotId) {
+      const spot = spotsData.find(s => s.id === spotId);
+      if (!spot || !map) return;
+
+      map.flyTo(spot.coords, 16, { duration: 1.0 });
+
+      // Open popup after fly animation
+      setTimeout(() => {
+        markersLayer.eachLayer(layer => {
+          if (layer.getLatLng && 
+              Math.abs(layer.getLatLng().lat - spot.coords[0]) < 0.0001 && 
+              Math.abs(layer.getLatLng().lng - spot.coords[1]) < 0.0001) {
+            layer.openPopup();
+          }
+        });
+      }, 1100);
+    }
+
+    function locateAndDropPin() {
+      if (!navigator.geolocation) {
+        // Fallback for demo: Pick realistic Indiranagar coordinate
+        useSimulatedGPS();
+        return;
+      }
+
+      showToast('Acquiring your location via GPS...', 'info');
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Verify if inside or near Bengaluru (approx lat: 12.7 to 13.2, lng: 77.4 to 77.8)
+          if (lat >= 12.7 && lat <= 13.3 && lng >= 77.3 && lng <= 77.9) {
+            flyToLocation(lat, lng, 16, 'Your Current Location');
+            openNewReportModalWithCoords(lat, lng);
+          } else {
+            // Outside BLR (e.g. testing elsewhere), use realistic Bengaluru hot spot
+            useSimulatedGPS();
+          }
+        },
+        (error) => {
+          // Permission denied or timeout -> Use realistic BLR location
+          useSimulatedGPS();
+        },
+        { timeout: 5000 }
+      );
+    }
+
+    function useSimulatedGPS() {
+      // Indiranagar 100ft road
+      const demoLat = 12.9784;
+      const demoLng = 77.6408;
+      flyToLocation(demoLat, demoLng, 16, 'Indiranagar 100ft Rd (Simulated GPS)');
+      openNewReportModalWithCoords(demoLat, demoLng);
+      showToast('GPS localized to Bengaluru East Zone (Indiranagar Ward 89)', 'info');
+    }
+
+    /* =========================================================================
+     * MODAL 1: REPORT BLACK SPOT HANDLING
+     * ========================================================================= */
+    let currentSelectedPhotoUrl = '';
+
+    function openNewReportModal() {
+      // Default to Koramangala or map center
+      const center = map ? map.getCenter() : { lat: 12.9345, lng: 77.6265 };
+      openNewReportModalWithCoords(center.lat, center.lng);
+    }
+
+    function openNewReportModalWithCoords(lat, lng) {
+      document.getElementById('reportLat').value = lat.toFixed(5);
+      document.getElementById('reportLng').value = lng.toFixed(5);
+      document.getElementById('coordDisplayBadge').textContent = `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`;
+
+      // Auto-detect closest ward based on coordinates
+      autoDetectWardAndZone(lat, lng);
+
+      // Pre-select sample photo if empty
+      if (!currentSelectedPhotoUrl) {
+        useSampleGarbagePhoto('plastic');
+      }
+
+      document.getElementById('reportModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeReportModal() {
+      document.getElementById('reportModal').classList.add('hidden');
+    }
+
+    function autoDetectWardAndZone(lat, lng) {
+      // Heuristic coordinate matching for Bengaluru neighborhoods
+      const wardSelect = document.getElementById('reportWard');
+      const zoneSelect = document.getElementById('reportZone');
+
+      if (lat < 12.90) {
+        wardSelect.value = 'Ward 192 - Begur / E-City';
+        zoneSelect.value = 'Bommanahalli Zone';
+      } else if (lat > 13.01) {
+        wardSelect.value = 'Ward 7 - Hebbal';
+        zoneSelect.value = 'Yelahanka Zone';
+      } else if (lng > 77.70) {
+        wardSelect.value = 'Ward 84 - Hagadur / Whitefield';
+        zoneSelect.value = 'Mahadevapura Zone';
+      } else if (lng < 77.58) {
+        wardSelect.value = 'Ward 45 - Malleshwaram';
+        zoneSelect.value = 'West Zone';
+      } else if (lat < 12.94 && lng > 77.60) {
+        wardSelect.value = 'Ward 151 - Koramangala';
+        zoneSelect.value = 'South Zone';
+      } else if (lat > 12.96 && lng > 77.63) {
+        wardSelect.value = 'Ward 89 - Jogupalya / Indiranagar';
+        zoneSelect.value = 'East Zone';
+      } else {
+        wardSelect.value = 'Ward 153 - Jayanagar 4th Block';
+        zoneSelect.value = 'South Zone';
+      }
+    }
+
+    function useSampleGarbagePhoto(type) {
+      const url = SAMPLE_GARBAGE_PHOTOS[type] || SAMPLE_GARBAGE_PHOTOS.mixed;
+      currentSelectedPhotoUrl = url;
+
+      const preview = document.getElementById('reportPhotoPreview');
+      preview.src = url;
+      preview.classList.remove('hidden');
+
+      document.getElementById('uploadPrompt').classList.add('hidden');
+      document.getElementById('removePhotoBtn').classList.remove('hidden');
+    }
+
+    function handleImageFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        currentSelectedPhotoUrl = event.target.result;
+        const preview = document.getElementById('reportPhotoPreview');
+        preview.src = currentSelectedPhotoUrl;
+        preview.classList.remove('hidden');
+
+        document.getElementById('uploadPrompt').classList.add('hidden');
+        document.getElementById('removePhotoBtn').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearPhotoSelection(e) {
+      e.stopPropagation();
+      currentSelectedPhotoUrl = '';
+      const preview = document.getElementById('reportPhotoPreview');
+      preview.src = '';
+      preview.classList.add('hidden');
+
+      document.getElementById('reportPhotoInput').value = '';
+      document.getElementById('uploadPrompt').classList.remove('hidden');
+      document.getElementById('removePhotoBtn').classList.add('hidden');
+    }
+
+    function handleReportSubmit(e) {
+      e.preventDefault();
+
+      const landmark = document.getElementById('reportLandmark').value.trim();
+      const notes = document.getElementById('reportNotes').value.trim() || 'Illegal dump site reported by resident.';
+      const ward = document.getElementById('reportWard').value;
+      const zone = document.getElementById('reportZone').value;
+      const lat = parseFloat(document.getElementById('reportLat').value);
+      const lng = parseFloat(document.getElementById('reportLng').value);
+
+      const categoryRadio = document.querySelector('input[name="wasteCategory"]:checked');
+      const category = categoryRadio ? categoryRadio.value : 'mixed';
+
+      if (!currentSelectedPhotoUrl) {
+        useSampleGarbagePhoto(category);
+      }
+
+      const newId = 'spot-' + Date.now();
+      const newSpot = {
+        id: newId,
+        title: landmark.split(',')[0] + ' Waste Spot',
+        landmark: landmark,
+        ward: ward,
+        zone: zone,
+        coords: [lat, lng],
+        category: category,
+        status: 'pending', // Starts pending!
+        reportsCount: 1, // First report
+        threshold: 5,
+        reporters: ['You (Kiran Rao)'],
+        timestamp: 'Just now',
+        photo: currentSelectedPhotoUrl,
+        notes: notes,
+        ticketId: null,
+        cleanedData: null
+      };
+
+      // Add to front of list
+      spotsData.unshift(newSpot);
+
+      // Award +50 Civic Points
+      userPoints += 50;
+      updatePointsDisplay();
+      playBeep('chime');
+
+      saveState();
+      closeReportModal();
+
+      // Refresh and open popup
+      refreshMapMarkers();
+      renderSpotsList();
+
+      focusSpotOnMap(newId);
+
+      showToast(`🎉 Report submitted! Earned +50 Namma Civic Points. Yellow Pin dropped at ${landmark}. (1/5 Reports towards BBMP escalation)`, 'success');
+
+      // Reset form
+      document.getElementById('newReportForm').reset();
+    }
+
+    /* =========================================================================
+     * ROLE SWITCHER: CITIZEN vs BBMP MARSHALL
+     * ========================================================================= */
+    function setAppRole(role) {
+      currentRole = role;
+
+      const citizenBtn = document.getElementById('citizenModeBtn');
+      const marshallBtn = document.getElementById('marshallModeBtn');
+      const banner = document.getElementById('marshallNoticeBanner');
+      const headerTagline = document.getElementById('headerTagline');
+      const roleBadge = document.getElementById('roleBadgeHeader');
+      const demoDockLabel = document.getElementById('demoDockRoleLabel');
+
+      if (role === 'marshall') {
+        citizenBtn.classList.remove('bg-white', 'text-civic-700', 'shadow-sm');
+        citizenBtn.classList.add('text-slate-600');
+
+        marshallBtn.classList.add('bg-slate-900', 'text-amber-400', 'shadow-sm');
+        marshallBtn.classList.remove('text-slate-600');
+
+        banner.classList.remove('hidden');
+        roleBadge.className = 'bg-slate-900 text-amber-400 text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full tracking-wide border border-amber-500/40';
+        roleBadge.textContent = 'BBMP Marshall Console';
+
+        headerTagline.textContent = 'BBMP SWM Official Dispatch Console & Enforcement Queue';
+
+        if (demoDockLabel) demoDockLabel.textContent = 'Exit Marshall View';
+
+        showToast('Switched to BBMP Marshall View. Inspecting verified spots for cleanup dispatch.', 'info');
+      } else {
+        citizenBtn.classList.add('bg-white', 'text-civic-700', 'shadow-sm');
+        citizenBtn.classList.remove('text-slate-600');
+
+        marshallBtn.classList.remove('bg-slate-900', 'text-amber-400', 'shadow-sm');
+        marshallBtn.classList.add('text-slate-600');
+
+        banner.classList.add('hidden');
+        roleBadge.className = 'bg-civic-100 text-civic-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full tracking-wide border border-civic-200';
+        roleBadge.textContent = 'Citizen Portal';
+
+        headerTagline.textContent = 'ನಮ್ಮ ಬೆಂಗಳೂರು, ಸ್ವಚ್ಛ ಬೆಂಗಳೂರು • Crowd-Verified Black Spot Escalator';
+
+        if (demoDockLabel) demoDockLabel.textContent = 'Switch to Marshall View';
+
+        showToast('Switched to Citizen Mode.', 'info');
+      }
+
+      renderSpotsList();
+      refreshMapMarkers();
+      lucide.createIcons();
+    }
+
+    function toggleRoleShortcut() {
+      setAppRole(currentRole === 'citizen' ? 'marshall' : 'citizen');
+    }
+
+    /* =========================================================================
+     * MODAL 5: MARSHALL RESOLUTION (Mark as Cleaned)
+     * ========================================================================= */
+    let currentResolveSpotId = null;
+    let selectedResolvePhotoUrl = 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=800&q=80';
+
+    function openResolveModal(spotId) {
+      currentResolveSpotId = spotId;
+      const spot = spotsData.find(s => s.id === spotId);
+      if (!spot) return;
+
+      document.getElementById('resolveSpotId').value = spot.id;
+      document.getElementById('resolveSpotTitle').textContent = spot.title;
+      document.getElementById('resolveSpotLandmark').textContent = spot.landmark;
+      document.getElementById('resolveTicketBadge').textContent = spot.ticketId || '#BBMP-TICKET';
+      document.getElementById('resolveTicketSubtitle').textContent = `Resolving Ticket ${spot.ticketId || ''} (${spot.ward})`;
+
+      document.getElementById('resolveModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeResolveModal() {
+      document.getElementById('resolveModal').classList.add('hidden');
+    }
+
+    function setResolveSamplePhoto(idx) {
+      if (idx === 1) {
+        selectedResolvePhotoUrl = 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=800&q=80';
+      } else {
+        selectedResolvePhotoUrl = 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80';
+      }
+      document.getElementById('resolvePhotoPreview').src = selectedResolvePhotoUrl;
+    }
+
+    function handleResolveSubmit(e) {
+      e.preventDefault();
+      const spot = spotsData.find(s => s.id === currentResolveSpotId);
+      if (!spot) return;
+
+      const marshallName = document.getElementById('resolveMarshallName').value;
+      const vehicleNo = document.getElementById('resolveVehicleNo').value;
+      const actionNote = document.getElementById('resolveActionNote').value;
+
+      spot.status = 'cleaned';
+      spot.cleanedData = {
+        cleanedAt: 'Just now',
+        afterPhoto: selectedResolvePhotoUrl,
+        marshall: marshallName,
+        vehicle: vehicleNo,
+        actionNote: actionNote
+      };
+
+      userPoints += 100; // Bonus points for resolved spot
+      updatePointsDisplay();
+      playBeep('cleaned');
+
+      saveState();
+      closeResolveModal();
+
+      refreshMapMarkers();
+      renderSpotsList();
+
+      focusSpotOnMap(spot.id);
+
+      showToast(`🌟 Spot marked as CLEANED! Pin turned Green. Before/After proof pushed to Swachh Wins gallery!`, 'success');
+    }
+
+    /* =========================================================================
+     * MODAL 2: SWACHH WINS (Before & After Slider & Gallery)
+     * ========================================================================= */
+    function openGalleryModal() {
+      renderResolvedGalleryCards();
+      document.getElementById('galleryModal').classList.remove('hidden');
+      lucide.createIcons();
+      setTimeout(() => updateSliderPosition(50), 100);
+    }
+
+    function closeGalleryModal() {
+      document.getElementById('galleryModal').classList.add('hidden');
+    }
+
+    function renderResolvedGalleryCards() {
+      const container = document.getElementById('resolvedCardsGrid');
+      if (!container) return;
+
+      const cleanedSpots = spotsData.filter(s => s.status === 'cleaned');
+
+      if (cleanedSpots.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-center text-slate-400 py-6 text-xs">No spots marked as cleaned yet. Use Marshall mode to resolve a verified spot!</p>`;
+        return;
+      }
+
+      container.innerHTML = cleanedSpots.map(spot => {
+        const afterImg = spot.cleanedData?.afterPhoto || 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=800&q=80';
+        return `
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800 truncate">${spot.landmark}</span>
+              <span class="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                ${spot.ticketId || '#RESOLVED'}
+              </span>
+            </div>
+
+            <!-- Side-by-Side Images -->
+            <div class="grid grid-cols-2 gap-2">
+              <div class="relative rounded-xl overflow-hidden h-24 bg-slate-200">
+                <img src="${spot.photo}" alt="Before" class="w-full h-full object-cover" />
+                <span class="absolute bottom-1 left-1 bg-red-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">BEFORE</span>
+              </div>
+              <div class="relative rounded-xl overflow-hidden h-24 bg-slate-200">
+                <img src="${afterImg}" alt="After" class="w-full h-full object-cover" />
+                <span class="absolute bottom-1 right-1 bg-emerald-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">AFTER</span>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500">${spot.cleanedData ? spot.cleanedData.actionNote : 'Restored and sanitized by BBMP'}</p>
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200">
+              <span>Cleared: ${spot.cleanedData?.cleanedAt || 'Recently'}</span>
+              <span class="text-emerald-700 font-semibold">${spot.ward}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    let isSliderDragging = false;
+
+    function handleSliderStart(e) {
+      isSliderDragging = true;
+      handleSliderMove(e);
+    }
+
+    function handleSliderClick(e) {
+      handleSliderMove(e);
+    }
+
+    window.addEventListener('mouseup', () => {
+      isSliderDragging = false;
+    });
+
+    function handleSliderMove(e) {
+      const container = document.getElementById('compareSliderBox');
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      x = Math.max(0, Math.min(x, rect.width));
+      const percent = (x / rect.width) * 100;
+      updateSliderPosition(percent);
+    }
+
+    function handleSliderTouch(e) {
+      const container = document.getElementById('compareSliderBox');
+      if (!container || !e.touches[0]) return;
+      const rect = container.getBoundingClientRect();
+      let x = e.touches[0].clientX - rect.left;
+      x = Math.max(0, Math.min(x, rect.width));
+      const percent = (x / rect.width) * 100;
+      updateSliderPosition(percent);
+    }
+
+    function updateSliderPosition(percent) {
+      const overlay = document.getElementById('compareOverlay');
+      const line = document.getElementById('compareLine');
+      const handle = document.getElementById('compareHandle');
+      const beforeImg = document.getElementById('compareBeforeImg');
+
+      if (overlay) overlay.style.width = percent + '%';
+      if (line) line.style.left = percent + '%';
+      if (handle) handle.style.left = percent + '%';
+      if (beforeImg) {
+        // Fix before image width to match parent container so it doesn't stretch or distort
+        const container = document.getElementById('compareSliderBox');
+        if (container) {
+          beforeImg.style.width = container.offsetWidth + 'px';
+        }
+      }
+    }
+
+    function applaudCleanup() {
+      applaudedCount += 1;
+      document.getElementById('applaudCount').textContent = `${applaudedCount} Citizens Applauded`;
+      userPoints += 10;
+      updatePointsDisplay();
+      playBeep('chime');
+      showToast('👏 Applauded the BBMP Marshall Squad! (+10 Civic Points)', 'success');
+    }
+
+    /* =========================================================================
+     * MODAL 3: WARD LEADERBOARD
+     * ========================================================================= */
+    function openLeaderboardModal() {
+      renderLeaderboardTable();
+      document.getElementById('leaderboardModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeLeaderboardModal() {
+      document.getElementById('leaderboardModal').classList.add('hidden');
+    }
+
+    function renderLeaderboardTable() {
+      const tbody = document.getElementById('leaderboardTableBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = WARD_LEADERBOARD_DATA.map(ward => {
+        let rankBadge = '';
+        if (ward.rank === 1) rankBadge = '🥇';
+        else if (ward.rank === 2) rankBadge = '🥈';
+        else if (ward.rank === 3) rankBadge = '🥉';
+        else rankBadge = `#${ward.rank}`;
+
+        let scoreColor = ward.score >= 80 ? 'text-emerald-700 bg-emerald-100' : (ward.score >= 70 ? 'text-amber-700 bg-amber-100' : 'text-rose-700 bg-rose-100');
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 text-center text-sm font-extrabold">${rankBadge}</span>
+              <div>
+                <p class="font-bold">${ward.name}</p>
+                <p class="text-[10px] text-slate-400">${ward.zone} Zone</p>
+              </div>
+            </td>
+            <td class="py-3 px-3 text-center">
+              <span class="px-2.5 py-1 rounded-full text-xs font-mono font-extrabold ${scoreColor}">
+                ${ward.score}/100
+              </span>
+            </td>
+            <td class="py-3 px-3 text-center font-bold text-amber-700">
+              ${ward.active}
+            </td>
+            <td class="py-3 px-3 text-center font-bold text-emerald-700">
+              ${ward.resolved}
+            </td>
+            <td class="py-3 px-4 text-right font-mono text-slate-600">
+              ${ward.avgTime}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /* =========================================================================
+     * MODAL 4: GAMIFICATION & CIVIC POINTS
+     * ========================================================================= */
+    function openGamificationModal() {
+      updatePointsDisplay();
+      document.getElementById('gamificationModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeGamificationModal() {
+      document.getElementById('gamificationModal').classList.add('hidden');
+    }
+
+    function updatePointsDisplay() {
+      const navPoints = document.getElementById('userPointsNav');
+      const navPointsMobile = document.getElementById('userPointsNavMobile');
+      const modalPoints = document.getElementById('modalPointsValue');
+
+      if (navPoints) navPoints.textContent = `${userPoints} Pts`;
+      if (navPointsMobile) navPointsMobile.textContent = userPoints.toString();
+      if (modalPoints) modalPoints.textContent = userPoints.toString();
+    }
+
+    /* =========================================================================
+     * BILINGUAL KANNADA / ENGLISH TOGGLE
+     * ========================================================================= */
+    function toggleLanguage() {
+      currentLang = currentLang === 'en' ? 'kn' : 'en';
+      const label = document.getElementById('currentLangLabel');
+      
+      if (currentLang === 'kn') {
+        label.textContent = 'English';
+        document.getElementById('headerTagline').textContent = 'ನಮ್ಮ ಬೆಂಗಳೂರು, ಸ್ವಚ್ಛ ಬೆಂಗಳೂರು • ನಾಗರಿಕ ಪರಿಶೀಲನೆ ಮತ್ತು ಬಿಬಿಎಂಪಿ ಕ್ರಮ ವೇದಿಕೆ';
+        document.getElementById('mapPromptTitle').textContent = 'ಬೆಂಗಳೂರು ನಕ್ಷೆಯ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ';
+        document.getElementById('mapPromptSub').textContent = 'ಕಸದ ತಾಣ (ಬ್ಲ್ಯಾಕ್ ಸ್ಪಾಟ್) ವರದಿ ಮಾಡಲು';
+        showToast('ಭಾಷೆಯನ್ನು ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ (Kannada selected)', 'info');
+      } else {
+        label.textContent = 'ಕನ್ನಡ';
+        document.getElementById('headerTagline').textContent = 'ನಮ್ಮ ಬೆಂಗಳೂರು, ಸ್ವಚ್ಛ ಬೆಂಗಳೂರು • Crowd-Verified Black Spot Escalator';
+        document.getElementById('mapPromptTitle').textContent = 'Click anywhere on Bengaluru map';
+        document.getElementById('mapPromptSub').textContent = 'to report an illegal garbage black spot pin';
+        showToast('Language switched to English', 'info');
+      }
+    }
+
+    /* =========================================================================
+     * DEMO GUIDE & TOUR HELPER
+     * ========================================================================= */
+    function openPitchGuideModal() {
+      document.getElementById('pitchGuideModal').classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closePitchGuideModal() {
+      document.getElementById('pitchGuideModal').classList.add('hidden');
+    }
+
+    function openSimulationTour() {
+      openPitchGuideModal();
+    }
+
+    /* =========================================================================
+     * TOAST NOTIFICATION SYSTEM
+     * ========================================================================= */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = `p-3.5 rounded-2xl shadow-xl border text-xs font-medium flex items-start gap-3 pointer-events-auto transition-all duration-300 transform translate-x-12 opacity-0`;
+
+      let icon = 'info';
+      if (type === 'success') {
+        toast.classList.add('bg-emerald-950', 'text-emerald-100', 'border-emerald-600/40');
+        icon = 'check-circle-2';
+      } else if (type === 'alert') {
+        toast.classList.add('bg-red-950', 'text-red-100', 'border-red-600/50');
+        icon = 'alert-octagon';
+      } else {
+        toast.classList.add('bg-slate-900', 'text-slate-100', 'border-slate-700');
+        icon = 'info';
+      }
+
+      toast.innerHTML = `
+        <div class="flex-shrink-0 mt-0.5 text-emerald-400">
+          <i data-lucide="${icon}" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 text-[11px] leading-tight">
+          ${message}
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      // Animate in
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-x-12', 'opacity-0');
+      });
+
+      // Auto dismiss after 4.5 seconds
+      setTimeout(() => {
+        toast.classList.add('translate-x-12', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 4500);
+    }
+
+    /* =========================================================================
+     * INITIALIZATION ON WINDOW LOAD
+     * ========================================================================= */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadInitialState();
+      initMap();
+      renderSpotsList();
+      lucide.createIcons();
+    });
+
+  </script>
+</body>
+</html>
